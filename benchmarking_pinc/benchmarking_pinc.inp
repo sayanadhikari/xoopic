@@ -1,0 +1,237 @@
+Plasma_Diagnostics
+{
+Benchmarking of PINC code
+Authors:  Dr. Sayan Adhikari, UiO
+     	    Steffan Brask, UiO
+Date: 28.03.2020
+
+}
+
+Variables
+{
+// ******************************
+// General physical parameters
+// ******************************
+
+  Q 		= 1.60217662e-19
+  mAr 		= 6.6335209E-26
+  mH        = 1.6735575E-27
+  mE 		= 9.11E-31
+  PI 		= 3.14
+  EPS0      = 8.85418782e-12
+  KB        = 1.38064852E-23
+
+  PLA_DEN	= 1E9
+  Ni      	= PLA_DEN
+  Ne 		= 1.0 * PLA_DEN
+  TeSI      = 123113
+  TiSI      = 12311
+  PLASMA_FREQ_E = sqrt((Ne*Q*Q)/(EPS0*mE))/(2*PI)
+  DL        = sqrt((TeSI*KB*EPS0)/(Ne*Q*Q))  //Debye Length
+  SYS_LEN   = 0.3265  //in terms of DL
+
+  //*************************
+  // 	Grid parameters
+  //*************************
+    Nx = 128
+    Ny = 128
+    dx =  (SYS_LEN*DL)/Nx
+    dy =  (SYS_LEN*DL)/Ny
+    Lx =  SYS_LEN*DL
+    Ly =  SYS_LEN*DL
+
+    simulationVolume = Lx * Ly
+    numCells         = Nx * Ny
+
+    //*************************
+    // 	OBJECT
+    //*************************
+    OBJECT_SIZE = 0.05 //in meter
+    OBJECT_SIZE_GRID = 24 //round(OBJECT_SIZE/dx) //in terms of dx
+    OBJECT_SIZE_DL = OBJECT_SIZE/DL //in terms of Debye
+    //LOCATION
+    A1 = (Nx/2)-(OBJECT_SIZE_GRID/2)
+    A2 = (Ny/2)-(OBJECT_SIZE_GRID/2)
+// ******************************
+//	DEVICE PARAMETERS
+// ******************************
+
+  ORIGX = 0.0
+  ORIGY = 0.0
+
+// *************************
+// streaming electrons
+// *************************
+  totalNumElectrons    = Ne * simulationVolume
+  numElectronsPerCell  = 5
+  numElectronPtcls     = numElectronsPerCell * numCells
+  electronNumRatio     = totalNumElectrons / numElectronPtcls
+
+// *************************
+// streaming ions
+// *************************
+  totalNumIons   = Ni * simulationVolume
+  numIonsPerCell = 5
+  numIonPtcls    = numIonsPerCell * numCells
+  ionNumRatio    = totalNumIons / numIonPtcls
+
+  timeStep = 0.1*(((dx/DL)/(PLASMA_FREQ_E)))
+
+}
+
+Region
+{
+
+Grid
+{
+	J = Nx
+	x1s = ORIGX
+	x1f = ORIGX+Lx
+	n1 = 1.0
+	K = Ny
+	x2s = ORIGY
+	x2f = ORIGY+Ly
+	n2 = 1.0
+	Geometry = 1
+  PeriodicFlagX1 = 1
+  PeriodicFlagX2 = 1
+}
+
+Control
+{
+	dt = timeStep
+	//MPIpartition = Nx1
+	ElectrostaticFlag = 4
+	//B02analytic =  MAGFIELDSTRENGTH*(pow(x1,-2))  //(1-(x1*x1))
+	particleLimit = 1E8
+  initPoissonSolve = 0
+}
+
+MCC
+{
+	gas = H
+	pressure = 1.699716e-10 //in Torr
+	eSpecies = electrons
+	iSpecies = hydrogen
+}
+
+Species
+{
+	  name = electrons
+	  m = mE
+	  q = -Q
+	  collisionModel = 1
+}
+Species
+{
+	  name = hydrogen
+	  m = mH
+	  q = Q
+	  collisionModel = 2
+}
+
+
+///////////////////// PLASMA TUBE //////////////////////////////
+Load
+{
+  speciesName = hydrogen
+  density = Ni
+  x1MinMKS = ORIGX
+  x1MaxMKS = Lx
+  x2MinMKS = ORIGY
+  x2MaxMKS = Ly
+  np2c = ionNumRatio
+  LoadMethodFlag=1
+// specify MKS units for all velocities
+  units = MKS
+  v1drift = 0.0 // DRIFTE
+  v2drift = 0.0	// drift velocity in direction 2
+  v3drift = 0.0	// drift velocity in direction 3
+  temperature=TiSI
+}
+
+
+Load
+{
+  speciesName = electrons
+  density = Ne
+  x1MinMKS = ORIGX
+  x1MaxMKS = Lx
+  x2MinMKS = ORIGY
+  x2MaxMKS = Ly
+  np2c = electronNumRatio
+  LoadMethodFlag=1
+  // specify MKS units for all velocities
+    units = MKS
+    v1drift = 0.0 // DRIFTE
+    v2drift = 0.0	// drift velocity in direction 2
+    v3drift = 0.0	// drift velocity in direction 3
+    temperature=TeSI
+}
+/////////////////////////////////////////////////////////
+/// OBJECT///
+Equipotential
+{
+  name = object
+  C = -0.1	// initial voltage of driven electrode
+  IdiagFlag=1
+  Ihist_len=10000
+  Ihist_avg = 100
+  Segment //top 1
+  {
+  j1 = A1
+  k1 = A2 + OBJECT_SIZE_GRID
+  j2 = A1 + OBJECT_SIZE_GRID
+  k2 = A2 + OBJECT_SIZE_GRID
+  normal = 1
+  }
+  Segment //bottom 1
+  {
+  j1 = A1
+  k1 = A2
+  j2 = A1 + OBJECT_SIZE_GRID
+  k2 = A2
+  normal = -1
+  }
+  Segment //right 1
+  {
+  j1 = A1 + OBJECT_SIZE_GRID
+  k1 = A2
+  j2 = A1 + OBJECT_SIZE_GRID
+  k2 = A2 + OBJECT_SIZE_GRID
+  normal = 1
+  }
+   Segment // left 1
+  {
+  j1 = A1
+  k1 = A2
+  j2 = A1
+  k2 = A2 + OBJECT_SIZE_GRID
+  normal = -1
+  }
+
+}
+
+
+
+//////////////// DIAGNOSTICS //////////////////
+
+
+
+
+Diagnostic
+{
+	title = Average Potential
+	A1 = ORIGX
+	A2 = ORIGY
+	B1 = ORIGX + Lx
+	B2 = ORIGX + Ly
+	VarName = phi
+	x1_Label = Lx
+  x2_Label = Ly
+	integral = sum
+  HistMax = 1000
+  save = 1
+}
+
+}

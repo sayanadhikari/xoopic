@@ -1,0 +1,20 @@
+winset.o: winset.c /usr/include/stdc-predef.h .././config.h \
+ ../physics/precision.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/float.h \
+ /usr/local/xgrafix/include/xgrafix.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/stdarg.h \
+ /usr/local/xgrafix/include/xgscalar.h
+
+/usr/include/stdc-predef.h:
+
+.././config.h:
+
+../physics/precision.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/float.h:
+
+/usr/local/xgrafix/include/xgrafix.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/stdarg.h:
+
+/usr/local/xgrafix/include/xgscalar.h:
